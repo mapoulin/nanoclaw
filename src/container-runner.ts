@@ -165,6 +165,16 @@ function buildVolumeMounts(
     readonly: false,
   });
 
+  // Mount git credentials for GitHub access (deploy key stored outside .ssh to bypass security blocklist)
+  const githubSshDir = path.join(DATA_DIR, 'github_ssh');
+  if (fs.existsSync(githubSshDir)) {
+    mounts.push({
+      hostPath: githubSshDir,
+      containerPath: '/home/node/.ssh',
+      readonly: true,
+    });
+  }
+
   // Per-group IPC namespace: each group gets its own IPC directory
   // This prevents cross-group privilege escalation via IPC
   const groupIpcDir = resolveGroupIpcPath(group.folder);

@@ -84,6 +84,15 @@ function buildVolumeMounts(
       readonly: false,
     });
 
+    // .git is writable so the agent can commit skill changes.
+    // Source files (src/, dist/, etc.) remain read-only at the filesystem level,
+    // so the agent can only stage and commit what it can actually write (skills).
+    mounts.push({
+      hostPath: path.join(projectRoot, '.git'),
+      containerPath: '/workspace/project/.git',
+      readonly: false,
+    });
+
     // Shadow .env so the agent cannot read secrets from the mounted project root.
     // Credentials are injected by the credential proxy, never exposed to containers.
     const envFile = path.join(projectRoot, '.env');

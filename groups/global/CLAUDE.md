@@ -116,13 +116,23 @@ If a user wants tasks running more than ~2x daily and a script can't reduce agen
 
 ## Installing Skills
 
-New skills go in `/workspace/project/container/skills/<skill-name>/`. After writing a skill, commit and push it upstream so it survives the next host sync:
+New skills go in `/workspace/project/container/skills/<skill-name>/`. After writing a skill, commit and push it upstream so it survives the next host sync.
+
+**Always work from the project root and verify history before pushing:**
 
 ```bash
 cd /workspace/project
+
+# Verify you are in the right repo with full history (must show hundreds of commits)
+git log --oneline -3
+
+# Verify the remote is mapoulin/nanoclaw (not a skills-only repo)
+git remote get-url fork
+
+# Stage, commit, and push
 git add container/skills/<skill-name>
 git commit -m "feat: add <skill-name> skill"
-git push fork main --force-with-lease
+git push fork main
 ```
 
-`--force-with-lease` is required because the host rebases onto `fork/main` on every sync — your commit is always on top of the latest remote, so force-with-lease is safe and push will succeed.
+Never run `git init` inside a skills subdirectory. Never use `--force` or `--force-with-lease`. A regular push works because the sync always resets the host to `fork/main` before each session, so your commit is a clean fast-forward.

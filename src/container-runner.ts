@@ -2,8 +2,9 @@
  * Container Runner for NanoClaw
  * Spawns agent execution in containers and handles IPC
  */
-import { ChildProcess, spawn } from 'child_process';
+import { ChildProcess, execSync, spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import {
@@ -307,6 +308,18 @@ export async function runContainerAgent(
   onOutput?: (output: ContainerOutput) => Promise<void>,
 ): Promise<ContainerOutput> {
   const startTime = Date.now();
+
+  // Sync with upstream before each session so skills and memory are always fresh.
+  // Only runs if the sync script exists (e.g. production AWS host).
+  const syncScript = path.join(os.homedir(), 'nanoclaw-sync.sh');
+  if (fs.existsSync(syncScript)) {
+    try {
+      execSync(syncScript, { stdio: 'pipe', timeout: 60_000 });
+      logger.debug('Pre-session sync completed');
+    } catch (err) {
+      logger.warn({ err }, 'Pre-session sync failed, continuing anyway');
+    }
+  }
 
   const groupDir = resolveGroupFolderPath(group.folder);
   fs.mkdirSync(groupDir, { recursive: true });

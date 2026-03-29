@@ -330,53 +330,25 @@ async function fetchEmail(uid, mailbox = DEFAULT_MAILBOX) {
   try {
     await openBox(imap, mailbox);
 
-    // Fetch full body + raw headers in one round-trip for fallback parsing
-    const result = await new Promise((resolve, reject) => {
-      const f = imap.fetch([uid], {
-        bodies: ['', 'HEADER.FIELDS (MESSAGE-ID REFERENCES CC)'],
-        markSeen: false,
-      });
+    const searchCriteria = [['UID', uid]];
+    const fetchOptions = {
+      bodies: [''],
+      markSeen: false,
+    };
 
-      let fullBody = '';
-      let rawHeaders = '';
-      let attrs = {};
+    const messages = await searchMessages(imap, searchCriteria, fetchOptions);
 
-      f.on('message', (msg) => {
-        msg.on('body', (stream, info) => {
-          let buf = '';
-          stream.on('data', d => buf += d.toString('utf8'));
-          stream.once('end', () => {
-            if (info.which === '') fullBody = buf;
-            else rawHeaders = buf;
-          });
-        });
-        msg.once('attributes', (a) => { attrs = a; });
-      });
-
-      f.once('error', reject);
-      f.once('end', () => resolve({ fullBody, rawHeaders, attrs }));
-    });
-
-    const parsed = await parseEmail(result.fullBody, true);
-
-    // Fallback: extract messageId/references/cc from raw headers when simpleParser misses them
-    if (!parsed.messageId) {
-      const mid = result.rawHeaders.match(/Message-Id:\s*(<[^\r\n>]+>)/i);
-      if (mid) parsed.messageId = mid[1].trim();
+    if (messages.length === 0) {
+      throw new Error(`Message UID ${uid} not found`);
     }
-    if (!parsed.references) {
-      const refs = result.rawHeaders.match(/References:\s*([^\r\n]+(?:\r?\n[ \t][^\r\n]+)*)/i);
-      if (refs) parsed.references = refs[1].replace(/\r?\n[ \t]/g, ' ').trim();
-    }
-    if (!parsed.cc) {
-      const cc = result.rawHeaders.match(/Cc:\s*([^\r\n]+(?:\r?\n[ \t][^\r\n]+)*)/i);
-      if (cc) parsed.cc = cc[1].replace(/\r?\n[ \t]/g, ' ').trim();
-    }
+
+    const item = messages[0];
+    const parsed = await parseEmail(item.body, true);
 
     return {
-      uid: result.attrs.uid,
+      uid: item.attributes.uid,
       ...parsed,
-      flags: result.attrs.flags,
+      flags: item.attributes.flags,
     };
   } finally {
     imap.end();

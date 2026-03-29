@@ -113,3 +113,16 @@ If a user wants tasks running more than ~2x daily and a script can't reduce agen
 - Suggest restructuring with a script that checks the condition first
 - If the user needs an LLM to evaluate data, suggest using an API key with direct Anthropic API calls inside the script
 - Help the user find the minimum viable frequency
+
+## Installing Skills
+
+New skills go in `/workspace/project/container/skills/<skill-name>/`. After writing a skill, commit and push it upstream so it survives the next host sync:
+
+```bash
+cd /workspace/project
+git add container/skills/<skill-name>
+git commit -m "feat: add <skill-name> skill"
+git push fork main --force-with-lease
+```
+
+`--force-with-lease` is required because the host rebases onto `fork/main` on every sync — your commit is always on top of the latest remote, so force-with-lease is safe and push will succeed.

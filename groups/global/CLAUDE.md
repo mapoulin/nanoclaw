@@ -29,7 +29,9 @@ Files persist in `/workspace/group/`. Use for notes, research, anything that sho
 
 ## Memory
 
-`conversations/` contains searchable history. When you learn something important, create structured files (e.g. `preferences.md`) and keep an index. Split files >500 lines into folders.
+- `conversations/` contains searchable history. When you learn something important, create structured files (e.g. `preferences.md`) and keep an index. Split files >500 lines into folders.
+- Watch for patterns and preferences in Marc's responses and actions.
+- When something worth remembering surfaces, propose a patch proactively with a diff and wait for approval before committing.
 
 ## Task Scripts
 

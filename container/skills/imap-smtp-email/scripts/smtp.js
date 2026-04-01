@@ -18,7 +18,7 @@ async function fetchThreadHeaders(uid) {
   const imapScript = path.resolve(__dirname, 'imap.js');
 
   return new Promise((resolve, reject) => {
-    execFile('node', [imapScript, 'fetch', String(uid)], (err, stdout, stderr) => {
+    execFile('node', [imapScript, 'fetch', String(uid)], { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
         reject(new Error(`Failed to fetch thread headers: ${stderr || err.message}`));
         return;

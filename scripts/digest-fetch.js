@@ -14,6 +14,10 @@
  *   --newsletter-folder <f>   IMAP folder (default: Folders/Newsletters)
  *   --body-limit <n>          Max chars per email body (default: 800)
  *   --recent <time>           Time window, e.g. 24h, 48h (default: 24h)
+ *
+ * Behaviour:
+ *   - INBOX:       all emails (read + unread) within the time window
+ *   - Newsletters: unread only; marked as read after the digest is built
  */
 
 import { execFile } from 'child_process';
@@ -104,8 +108,14 @@ async function main() {
 
   const [inbox, newsletters] = await Promise.all([
     runImap(['search', '--recent', opts.recent, '--mailbox', 'INBOX', '--limit', String(opts.inboxLimit)]),
-    runImap(['search', '--recent', opts.recent, '--mailbox', opts.newsletterFolder, '--limit', String(opts.newsletterLimit)]),
+    runImap(['search', '--recent', opts.recent, '--mailbox', opts.newsletterFolder, '--limit', String(opts.newsletterLimit), '--unseen']),
   ]);
+
+  // Mark fetched newsletters as read
+  if (newsletters.length > 0) {
+    const uids = newsletters.map((e) => String(e.uid));
+    await runImap(['mark-read', ...uids, '--mailbox', opts.newsletterFolder]);
+  }
 
   const result = {
     fetched_at: new Date().toISOString(),

@@ -34,8 +34,15 @@ function parseICS(content) {
   };
   const parseDate = (val) => {
     if (!val) return null;
+    const isUTC = val.endsWith('Z');
     const m = val.replace('Z', '').match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
-    if (m) return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
+    if (m) {
+      const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}${isUTC ? 'Z' : ''}`;
+      // Convert UTC to local time string for display
+      return isUTC
+        ? new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit' })
+        : iso;
+    }
     // Date-only format (YYYYMMDD)
     const d = val.match(/(\d{4})(\d{2})(\d{2})/);
     return d ? `${d[1]}-${d[2]}-${d[3]}` : val;

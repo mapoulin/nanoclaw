@@ -1,3 +1,5 @@
+import type { EventEmitter } from 'node:events';
+
 import { App, LogLevel } from '@slack/bolt';
 import type { GenericMessageEvent, BotMessageEvent } from '@slack/types';
 
@@ -63,6 +65,31 @@ export class SlackChannel implements Channel {
     });
 
     this.setupEventHandlers();
+    this.setupFatalReconnectHandler();
+  }
+
+  // The Socket Mode client retries reconnecting on its own, but if it exhausts
+  // those retries (e.g. after a run of WebSocket errors) it emits this event and
+  // never recovers — leaving the process silently deaf to inbound messages while
+  // outbound REST calls (chat.postMessage) keep working, masking the failure.
+  // Exit and let systemd (Restart=always) start fresh with a new socket.
+  private setupFatalReconnectHandler(): void {
+    try {
+      const client = (this.app as unknown as { receiver: { client: EventEmitter } })
+        .receiver.client;
+      client.on('unable_to_socket_mode_start', (err: unknown) => {
+        logger.error(
+          { err },
+          'Slack Socket Mode client gave up reconnecting, exiting process for restart',
+        );
+        process.exit(1);
+      });
+    } catch (err) {
+      logger.warn(
+        { err },
+        'Could not attach Slack Socket Mode fatal-reconnect handler',
+      );
+    }
   }
 
   private setupEventHandlers(): void {

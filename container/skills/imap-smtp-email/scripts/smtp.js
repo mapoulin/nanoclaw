@@ -13,7 +13,7 @@ const os = require('os');
 const fs = require('fs');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-// Fetch Message-ID and References headers by reusing imap.js fetch
+// Fetch Message-ID, References, and body content by reusing imap.js fetch
 async function fetchThreadHeaders(uid) {
   const imapScript = path.resolve(__dirname, 'imap.js');
 
@@ -28,12 +28,60 @@ async function fetchThreadHeaders(uid) {
         resolve({
           messageId: result.messageId || null,
           references: result.references || null,
+          from: result.from || null,
+          date: result.date || null,
+          subject: result.subject || null,
+          text: result.text || null,
+          html: result.html || null,
         });
       } catch (e) {
         reject(new Error(`Failed to parse imap fetch output: ${e.message}`));
       }
     });
   });
+}
+
+// Build an HTML reply with the original message quoted below
+function buildQuotedHtml(newBodyText, original) {
+  const dateStr = original.date
+    ? new Date(original.date).toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'full', timeStyle: 'short' })
+    : '';
+  const fromStr = original.from || '';
+
+  // Escape and convert plain text new body to HTML
+  const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const newBodyHtml = escape(newBodyText).replace(/\n/g, '<br>\n');
+
+  // Extract body content from original HTML, or fall back to plain text
+  let quotedContent;
+  if (original.html) {
+    // Strip outer html/head/body tags, keep inner content
+    let inner = original.html
+      .replace(/^[\s\S]*?<body[^>]*>/i, '')
+      .replace(/<\/body>[\s\S]*$/i, '');
+    // If stripping didn't work (no body tag), use html as-is but remove doctype/html/head blocks
+    if (inner === original.html) {
+      inner = original.html
+        .replace(/<!DOCTYPE[^>]*>/gi, '')
+        .replace(/<html[^>]*>[\s\S]*?<\/head>/gi, '')
+        .replace(/<\/?html[^>]*>/gi, '')
+        .replace(/<\/?body[^>]*>/gi, '');
+    }
+    quotedContent = inner.trim();
+  } else if (original.text) {
+    quotedContent = escape(original.text).replace(/\n/g, '<br>\n');
+  } else {
+    quotedContent = '';
+  }
+
+  return `<div style="font-family: Arial, sans-serif; font-size: 14px; background: #ffffff; color: #000000;">
+  <div>${newBodyHtml}</div>
+  <br>
+  <div class="gmail_quote gmail_quote_container">
+    <div dir="ltr" class="gmail_attr">On ${dateStr}, ${fromStr} wrote:<br></div>
+    <blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex">${quotedContent}</blockquote>
+  </div>
+</div>`;
 }
 
 function validateReadPath(inputPath) {
@@ -234,9 +282,23 @@ async function main() {
         }
 
         if (options['reply-to-uid']) {
-          const headers = await fetchThreadHeaders(options['reply-to-uid']);
-          options.inReplyTo = headers.messageId;
-          options.references = [headers.references, headers.messageId].filter(Boolean).join(' ');
+          const original = await fetchThreadHeaders(options['reply-to-uid']);
+          options.inReplyTo = original.messageId;
+          options.references = [original.references, original.messageId].filter(Boolean).join(' ');
+
+          // Build quoted HTML reply (use current body text, fall back to empty)
+          const bodyText = options.text || options.body || '';
+          options.html = buildQuotedHtml(bodyText, original);
+          options.text = undefined;
+          options.body = undefined;
+        } else if (!options.html && !options['html-file']) {
+          // Wrap plain text in a basic HTML envelope with white background
+          const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const bodyText = options.text || options.body || '';
+          const bodyHtml = escape(bodyText).replace(/\n/g, '<br>\n');
+          options.html = `<div style="font-family: Arial, sans-serif; font-size: 14px; background: #ffffff; color: #000000;">${bodyHtml}</div>`;
+          options.text = undefined;
+          options.body = undefined;
         }
 
         result = await sendEmailWithContent(options);

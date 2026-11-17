@@ -11,6 +11,7 @@ const envConfig = readEnvFile([
   'ASSISTANT_NAME',
   'ASSISTANT_HAS_OWN_NUMBER',
   'TZ',
+  'AGENT_MODEL',
 ]);
 
 export const ASSISTANT_NAME =
@@ -41,6 +42,10 @@ export const SENDER_ALLOWLIST_PATH = path.join(
 export const STORE_DIR = path.resolve(PROJECT_ROOT, 'store');
 export const GROUPS_DIR = path.resolve(PROJECT_ROOT, 'groups');
 export const DATA_DIR = path.resolve(PROJECT_ROOT, 'data');
+
+// Claude model the container agent runs on (passed as ANTHROPIC_MODEL).
+export const AGENT_MODEL =
+  process.env.AGENT_MODEL || envConfig.AGENT_MODEL || 'claude-sonnet-5';
 
 export const CONTAINER_IMAGE =
   process.env.CONTAINER_IMAGE || 'nanoclaw-agent:latest';

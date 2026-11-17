@@ -8,6 +8,7 @@ import os from 'os';
 import path from 'path';
 
 import {
+  AGENT_MODEL,
   CONTAINER_IMAGE,
   CONTAINER_MAX_OUTPUT_SIZE,
   CONTAINER_TIMEOUT,
@@ -266,6 +267,9 @@ function buildContainerArgs(
 
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
+
+  // Pin the Claude model the agent runs on
+  args.push('-e', `ANTHROPIC_MODEL=${AGENT_MODEL}`);
 
   // Route API traffic through the credential proxy (containers never see real secrets)
   args.push(

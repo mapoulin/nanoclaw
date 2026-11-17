@@ -209,3 +209,12 @@ npm install
 **TLS/SSL errors:**
 - Match `IMAP_TLS`/`SMTP_SECURE` setting to server requirements
 - For self-signed certs: set `IMAP_REJECT_UNAUTHORIZED=false` or `SMTP_REJECT_UNAUTHORIZED=false`
+
+## Morning digest data
+
+```bash
+node /app/skills/imap-smtp-email/scripts/digest-fetch.mjs [--inbox-limit 20] [--newsletter-limit 15] [--newsletter-folder Folders/Newsletters] [--body-limit 800] [--recent 24h]
+```
+
+Returns JSON with `inbox` (all emails in the window) and `newsletters` (unread only). **Side effect:**
+the newsletters it returns are marked as read, so do not run it for testing; use `imap.js search` / `fetch`.

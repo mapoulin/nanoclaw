@@ -45,7 +45,7 @@ export const DATA_DIR = path.resolve(PROJECT_ROOT, 'data');
 
 // Claude model the container agent runs on (passed as ANTHROPIC_MODEL).
 export const AGENT_MODEL =
-  process.env.AGENT_MODEL || envConfig.AGENT_MODEL || 'claude-sonnet-5';
+  process.env.AGENT_MODEL || envConfig.AGENT_MODEL || 'claude-sonnet-5-5';
 
 export const CONTAINER_IMAGE =
   process.env.CONTAINER_IMAGE || 'nanoclaw-agent:latest';

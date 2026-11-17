@@ -30,6 +30,7 @@ import {
 import { findSessionForAgent } from './db/sessions.js';
 import { backfillSession, fanInboundMessage } from './modules/cross-session-context/index.js';
 import { startTypingRefresh, stopTypingRefresh } from './modules/typing/index.js';
+import { ackInboundMessage } from './modules/ack-reaction/index.js';
 import { log } from './log.js';
 import { resolveSession, writeSessionMessage, writeOutboundDirect } from './session-manager.js';
 import { requestWake } from './request-wake.js';
@@ -631,6 +632,9 @@ async function deliverToAgent(
   if (wake) {
     // Typing indicator + wake are only for the engaged branch; accumulated
     // messages sit silently until a real trigger fires.
+    // Fork: immediate 👀 so the user sees the message was picked up while
+    // the container spins up (fire-and-forget).
+    ackInboundMessage(event, mg.instance ?? event.channelType, event.platformId, effectiveThreadId);
     // Typing fires via the adapter instance that owns this chat's row.
     startTypingRefresh(
       session.id,
